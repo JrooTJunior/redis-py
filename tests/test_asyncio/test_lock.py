@@ -8,7 +8,6 @@ if sys.version_info[0:2] == (3, 6):
 else:
     import pytest_asyncio
 
-from redis.asyncio.lock import Lock
 from redis.exceptions import LockError, LockNotOwnedError
 
 pytestmark = pytest.mark.asyncio
@@ -23,7 +22,7 @@ class TestLock:
         await redis.flushall()
 
     def get_lock(self, redis, *args, **kwargs):
-        kwargs["lock_class"] = Lock
+        # kwargs["lock_class"] = Lock
         return redis.lock(*args, **kwargs)
 
     async def test_lock(self, r):
@@ -57,6 +56,12 @@ class TestLock:
         await lock.acquire(blocking=False)
         assert await lock.locked() is True
         await lock.release()
+        assert await lock.locked() is False
+
+    async def test_redis_contextmanager(self, r):
+        lock = self.get_lock(r, "foo", timeout=10)
+        async with lock:
+            assert await lock.locked() is True
         assert await lock.locked() is False
 
     async def _test_owned(self, client):
